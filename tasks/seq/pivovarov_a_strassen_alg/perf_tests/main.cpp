@@ -7,7 +7,7 @@
 #include "seq/pivovarov_a_strassen_alg/include/ops_seq.hpp"
 
 TEST(sequential_pivovarov_a_strassen_alg_perf_test, test_pipeline_run) {
-  int n = 64;
+  int n = 128;
 
   // Create data
   std::vector<double> in_A = createRndMatrix(n);
@@ -57,7 +57,7 @@ TEST(sequential_pivovarov_a_strassen_alg_perf_test, test_pipeline_run) {
 }
 
 TEST(sequential_pivovarov_a_strassen_alg_perf_test, test_task_run) {
-  int n = 64;
+  int n = 128;
 
   // Create data
   std::vector<double> in_A = createRndMatrix(n);
