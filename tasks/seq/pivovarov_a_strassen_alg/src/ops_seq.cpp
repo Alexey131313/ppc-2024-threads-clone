@@ -65,8 +65,8 @@ std::vector<double> subMatrix(const std::vector<double>& A, const std::vector<do
   return C;
 }
 
-void splitMatrix(const std::vector<double>& mSplit, std::vector<double>& a11, std::vector<double>& a12,
-                 std::vector<double>& a21, std::vector<double>& a22) {
+void splitMatrix1(const std::vector<double>& mSplit, std::vector<double>& a11, std::vector<double>& a12,
+                  std::vector<double>& a21, std::vector<double>& a22) {
   int n = std::sqrt(mSplit.size()) / 2;
 
   for (int i = 0; i < n; i++) {
@@ -121,8 +121,8 @@ std::vector<double> strassenMatrixMult(const std::vector<double>& A, const std::
     std::vector<double> B21(newSizeSquare);
     std::vector<double> B22(newSizeSquare);
 
-    splitMatrix(newA, A11, A12, A21, A22);
-    splitMatrix(newB, B11, B12, B21, B22);
+    splitMatrix1(newA, A11, A12, A21, A22);
+    splitMatrix1(newB, B11, B12, B21, B22);
 
     std::vector<double> P1 = strassenMatrixMult(addMatrix(A11, A22, halfSize), addMatrix(B11, B22, halfSize), halfSize);
     std::vector<double> P2 = strassenMatrixMult(addMatrix(A21, A22, halfSize), B11, halfSize);

@@ -4,7 +4,7 @@ name: Collect performance statistic
 
 on:
   schedule:
-    - cron: '0 12 */2 * *'
+    - cron: '0 12 */1 * *'
 
 jobs:
   ubuntu-gcc-build:
