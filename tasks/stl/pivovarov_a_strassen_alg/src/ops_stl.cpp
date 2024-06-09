@@ -1,6 +1,7 @@
 // Copyright 2024 Pivovarov Alexey
 #include "stl/pivovarov_a_strassen_alg/include/ops_stl.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 #include <thread>
@@ -10,7 +11,7 @@ size_t log2(size_t n) {
   size_t res = 0;
   while (n != 0) {
     n >>= 1;
-    res++;tatus
+    res++;
   }
   return res;
 }
@@ -125,23 +126,49 @@ std::vector<double> strassenMatrixMult(const std::vector<double>& A, const std::
     splitMatrix(newA, A11, A12, A21, A22);
     splitMatrix(newB, B11, B12, B21, B22);
 
-    std::vector<std::future<std::vector<double>>> futures(7);
+    std::vector<double> P1;
+    std::vector<double> P2;
+    std::vector<double> P3;
+    std::vector<double> P4;
+    std::vector<double> P5;
+    std::vector<double> P6;
+    std::vector<double> P7;
 
-    futures[0] = std::async(std::launch::async, [&] { return strassenMatrixMult(addMatrix(A11, A22, halfSize), addMatrix(B11, B22, halfSize), halfSize); });
-    futures[1] = std::async(std::launch::async, [&] { return strassenMatrixMult(addMatrix(A21, A22, halfSize), B11, halfSize); });
-    futures[2] = std::async(std::launch::async, [&] { return strassenMatrixMult(A11, subMatrix(B12, B22, halfSize), halfSize); });
-    futures[3] = std::async(std::launch::async, [&] { return strassenMatrixMult(A22, subMatrix(B21, B11, halfSize), halfSize); });
-    futures[4] = std::async(std::launch::async, [&] { return strassenMatrixMult(addMatrix(A11, A12, halfSize), B22, halfSize); });
-    futures[5] = std::async(std::launch::async, [&] { return strassenMatrixMult(subMatrix(A21, A11, halfSize), addMatrix(B11, B12, halfSize), halfSize); });
-    futures[6] = std::async(std::launch::async, [&] { return strassenMatrixMult(subMatrix(A12, A22, halfSize), addMatrix(B21, B22, halfSize), halfSize); });
+    std::future<std::vector<double>> f1 = std::async(std::launch::async, [&]() {
+      return strassenMatrixMult(addMatrix(A11, A22, halfSize), addMatrix(B11, B22, halfSize), halfSize);
+    });
 
-    std::vector<double> P1 = futures[0].get();
-    std::vector<double> P2 = futures[1].get();
-    std::vector<double> P3 = futures[2].get();
-    std::vector<double> P4 = futures[3].get();
-    std::vector<double> P5 = futures[4].get();
-    std::vector<double> P6 = futures[5].get();
-    std::vector<double> P7 = futures[6].get();
+    std::future<std::vector<double>> f2 = std::async(std::launch::async, [&]() {
+      return strassenMatrixMult(addMatrix(A21, A22, halfSize), B11, halfSize);
+    });
+
+    std::future<std::vector<double>> f3 = std::async(std::launch::async, [&]() {
+      return strassenMatrixMult(A11, subMatrix(B12, B22, halfSize), halfSize);
+    });
+
+    std::future<std::vector<double>> f4 = std::async(std::launch::async, [&]() {
+      return strassenMatrixMult(A22, subMatrix(B21, B11, halfSize), halfSize);
+    });
+
+    std::future<std::vector<double>> f5 = std::async(std::launch::async, [&]() {
+      return strassenMatrixMult(addMatrix(A11, A12, halfSize), B22, halfSize);
+    });
+
+    std::future<std::vector<double>> f6 = std::async(std::launch::async, [&]() {
+      return strassenMatrixMult(subMatrix(A21, A11, halfSize), addMatrix(B11, B12, halfSize), halfSize);
+    });
+
+    std::future<std::vector<double>> f7 = std::async(std::launch::async, [&]() {
+      return strassenMatrixMult(subMatrix(A12, A22, halfSize), addMatrix(B21, B22, halfSize), halfSize);
+    });
+
+    P1 = f1.get();
+    P2 = f2.get();
+    P3 = f3.get();
+    P4 = f4.get();
+    P5 = f5.get();
+    P6 = f6.get();
+    P7 = f7.get();
 
     std::vector<double> C11 = addMatrix(subMatrix(addMatrix(P1, P4, halfSize), P5, halfSize), P7, halfSize);
     std::vector<double> C12 = addMatrix(P3, P5, halfSize);
