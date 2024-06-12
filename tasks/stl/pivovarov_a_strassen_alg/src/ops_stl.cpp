@@ -1,12 +1,12 @@
 // Copyright 2024 Pivovarov Alexey
 #include "stl/pivovarov_a_strassen_alg/include/ops_stl.hpp"
 
-#include <algorithm>
-#include <cmath>
-#include <future>
-#include <thread>
 #include <vector>
+#include <cmath>
+#include <thread>
 #include <mutex>
+#include <future>
+#include <algorithm>
 
 namespace pivovarov_a_stl {
 
@@ -39,10 +39,6 @@ std::vector<double> addSquareMatrix(const std::vector<double>& a, int n) {
 std::vector<double> multiplyMatrix(const std::vector<double>& A, const std::vector<double>& B, int n) {
   std::vector<double> C(n * n, 0.0);
 
-  if (n == 0) {
-    return std::vector<double>();
-  }
-
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < n; j++) {
       for (int k = 0; k < n; k++) {
@@ -50,7 +46,6 @@ std::vector<double> multiplyMatrix(const std::vector<double>& A, const std::vect
       }
     }
   }
-
   return C;
 }
 
@@ -71,29 +66,29 @@ std::vector<double> subMatrix(const std::vector<double>& A, const std::vector<do
 }
 
 void splitMatrix(const std::vector<double>& mSplit, std::vector<double>& a11, std::vector<double>& a12,
-                 std::vector<double>& a21, std::vector<double>& a22) {
-  int n = std::sqrt(mSplit.size()) / 2;
-
-  for (int i = 0; i < n; i++) {
-    std::copy(mSplit.begin() + (2 * i) * n, mSplit.begin() + (2 * i + 1) * n, a11.begin() + i * n);
-    std::copy(mSplit.begin() + (2 * i + 1) * n, mSplit.begin() + (2 * i + 2) * n, a12.begin() + i * n);
-    std::copy(mSplit.begin() + ((n * n * 2) + (2 * i * n)), mSplit.begin() + ((n * n * 2) + ((2 * i + 1) * n)),
-              a21.begin() + i * n);
-    std::copy(mSplit.begin() + ((n * n * 2) + ((2 * i + 1) * n)), mSplit.begin() + ((n * n * 2) + ((2 * i + 2) * n)),
-              a22.begin() + i * n);
+                 std::vector<double>& a21, std::vector<double>& a22, int halfSize) {
+  for (int i = 0; i < halfSize; i++) {
+    for (int j = 0; j < halfSize; j++) {
+      a11[i * halfSize + j] = mSplit[i * halfSize * 2 + j];
+      a12[i * halfSize + j] = mSplit[i * halfSize * 2 + j + halfSize];
+      a21[i * halfSize + j] = mSplit[(i + halfSize) * halfSize * 2 + j];
+      a22[i * halfSize + j] = mSplit[(i + halfSize) * halfSize * 2 + j + halfSize];
+    }
   }
 }
 
 std::vector<double> mergeMatrix(const std::vector<double>& a11, const std::vector<double>& a12,
-                                const std::vector<double>& a21, const std::vector<double>& a22) {
-  int n = std::sqrt(a11.size());
-  std::vector<double> res(4 * n * n, 0.0);
+                                const std::vector<double>& a21, const std::vector<double>& a22, int halfSize) {
+  int n = halfSize * 2;
+  std::vector<double> res(n * n, 0.0);
 
-  for (int i = 0; i < n; i++) {
-    std::copy(a11.begin() + i * n, a11.begin() + (i + 1) * n, res.begin() + (2 * i * n));
-    std::copy(a12.begin() + i * n, a12.begin() + (i + 1) * n, res.begin() + (2 * i + 1) * n);
-    std::copy(a21.begin() + i * n, a21.begin() + (i + 1) * n, res.begin() + ((n * 2) * n + 2 * i * n));
-    std::copy(a22.begin() + i * n, a22.begin() + (i + 1) * n, res.begin() + ((n * 2) * n + (2 * i + 1) * n));
+  for (int i = 0; i < halfSize; i++) {
+    for (int j = 0; j < halfSize; j++) {
+      res[i * n + j] = a11[i * halfSize + j];
+      res[i * n + j + halfSize] = a12[i * halfSize + j];
+      res[(i + halfSize) * n + j] = a21[i * halfSize + j];
+      res[(i + halfSize) * n + j + halfSize] = a22[i * halfSize + j];
+    }
   }
   return res;
 }
@@ -120,11 +115,7 @@ void strassenTask(const std::vector<double>& A, const std::vector<double>& B, st
     return;
   }
 
-  int newSize = getNewSize(A);
-  std::vector<double> newA = addSquareMatrix(A, newSize);
-  std::vector<double> newB = addSquareMatrix(B, newSize);
-
-  int halfSize = newSize / 2;
+  int halfSize = n / 2;
   int newSizeSquare = halfSize * halfSize;
 
   std::vector<double> A11(newSizeSquare);
@@ -137,30 +128,36 @@ void strassenTask(const std::vector<double>& A, const std::vector<double>& B, st
   std::vector<double> B21(newSizeSquare);
   std::vector<double> B22(newSizeSquare);
 
-  splitMatrix(newA, A11, A12, A21, A22);
-  splitMatrix(newB, B11, B12, B21, B22);
+  splitMatrix(A, A11, A12, A21, A22, halfSize);
+  splitMatrix(B, B11, B12, B21, B22, halfSize);
 
   std::vector<double> P1(newSizeSquare), P2(newSizeSquare), P3(newSizeSquare), P4(newSizeSquare), P5(newSizeSquare),
       P6(newSizeSquare), P7(newSizeSquare);
 
   auto computeP = [&](std::vector<double>& P, const std::vector<double>& A, const std::vector<double>& B,
-                      int halfSize) { strassenTask(A, B, P, halfSize, threadsCount, mutex); };
+                      int halfSize) {
+    strassenTask(A, B, P, halfSize, threadsCount, mutex);
+  };
 
-  std::vector<std::thread> threads;
+  std::vector<std::future<void>> futures;
   if (threadsCount > 1) {
-    threads.push_back(
-        std::thread(computeP, std::ref(P1), addMatrix(A11, A22, halfSize), addMatrix(B11, B22, halfSize), halfSize));
-    threads.push_back(std::thread(computeP, std::ref(P2), addMatrix(A21, A22, halfSize), B11, halfSize));
-    threads.push_back(std::thread(computeP, std::ref(P3), A11, subMatrix(B12, B22, halfSize), halfSize));
-    threads.push_back(std::thread(computeP, std::ref(P4), A22, subMatrix(B21, B11, halfSize), halfSize));
-    threads.push_back(std::thread(computeP, std::ref(P5), addMatrix(A11, A12, halfSize), B22, halfSize));
-    threads.push_back(std::thread(computeP, std::ref(P6), subMatrix(A21, A11, halfSize),
-                                  addMatrix(B11, B12, halfSize), halfSize));
-    threads.push_back(std::thread(computeP, std::ref(P7), subMatrix(A12, A22, halfSize),
-                                  addMatrix(B21, B22, halfSize), halfSize));
+    futures.push_back(std::async(std::launch::async, computeP, std::ref(P1), addMatrix(A11, A22, halfSize),
+                                 addMatrix(B11, B22, halfSize), halfSize));
+    futures.push_back(std::async(std::launch::async, computeP, std::ref(P2), addMatrix(A21, A22, halfSize), B11,
+                                 halfSize));
+    futures.push_back(std::async(std::launch::async, computeP, std::ref(P3), A11, subMatrix(B12, B22, halfSize),
+                                 halfSize));
+    futures.push_back(std::async(std::launch::async, computeP, std::ref(P4), A22, subMatrix(B21, B11, halfSize),
+                                 halfSize));
+    futures.push_back(std::async(std::launch::async, computeP, std::ref(P5), addMatrix(A11, A12, halfSize), B22,
+                                 halfSize));
+    futures.push_back(std::async(std::launch::async, computeP, std::ref(P6), subMatrix(A21, A11, halfSize),
+                                 addMatrix(B11, B12, halfSize), halfSize));
+    futures.push_back(std::async(std::launch::async, computeP, std::ref(P7), subMatrix(A12, A22, halfSize),
+                                 addMatrix(B21, B22, halfSize), halfSize));
 
-    for (auto& t : threads) {
-      t.join();
+    for (auto& future : futures) {
+      future.get();
     }
   } else {
     computeP(P1, addMatrix(A11, A22, halfSize), addMatrix(B11, B22, halfSize), halfSize);
@@ -177,11 +174,11 @@ void strassenTask(const std::vector<double>& A, const std::vector<double>& B, st
   std::vector<double> C21 = addMatrix(P2, P4, halfSize);
   std::vector<double> C22 = addMatrix(subMatrix(addMatrix(P1, P3, halfSize), P2, halfSize), P6, halfSize);
 
-  std::vector<double> C_result = mergeMatrix(C11, C12, C21, C22);
+  std::vector<double> C_result = mergeMatrix(C11, C12, C21, C22, halfSize);
 
   for (int i = 0; i < n; ++i) {
     for (int j = 0; j < n; ++j) {
-      C[i * n + j] = C_result[i * newSize + j];
+      C[i * n + j] = C_result[i * n + j];
     }
   }
 }
