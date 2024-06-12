@@ -3,9 +3,9 @@
 
 #include <algorithm>
 #include <cmath>
-#include <vector>
 #include <thread>
 #include <future>
+#include <vector>
 
 namespace pivovarov_a_stl {
 size_t log2(size_t n) {
@@ -224,4 +224,4 @@ bool TestTaskSTLParallelPivovarovStrassen::post_processing() {
   std::copy(result.begin(), result.end(), reinterpret_cast<double*>(taskData->outputs[0]));
   return true;
 }
-}
+}  // namespace pivovarov_a_stl

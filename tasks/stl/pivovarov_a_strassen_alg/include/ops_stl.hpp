@@ -43,4 +43,4 @@ inline std::vector<double> createRndMatrix(int n) {
 }
 
 std::vector<double> multiplyMatrix(const std::vector<double>& A, const std::vector<double>& B, int n);
-}
+}  // namespace pivovarov_a_stl
