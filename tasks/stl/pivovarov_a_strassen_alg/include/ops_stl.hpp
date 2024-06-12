@@ -9,6 +9,7 @@
 
 #include "core/task/include/task.hpp"
 
+namespace pivovarov_a_stl {
 class TestTaskSTLParallelPivovarovStrassen : public ppc::core::Task {
  public:
   explicit TestTaskSTLParallelPivovarovStrassen(std::shared_ptr<ppc::core::TaskData> taskData_)
@@ -42,3 +43,4 @@ inline std::vector<double> createRndMatrix(int n) {
 }
 
 std::vector<double> multiplyMatrix(const std::vector<double>& A, const std::vector<double>& B, int n);
+}
