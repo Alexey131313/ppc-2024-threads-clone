@@ -3,11 +3,13 @@
 
 #include <algorithm>
 #include <cmath>
-#include <thread>
 #include <future>
+#include <thread>
 #include <vector>
+#include <mutex>
 
 namespace pivovarov_a_stl {
+
 size_t log2(size_t n) {
   size_t res = 0;
   while (n != 0) {
@@ -152,10 +154,14 @@ void strassenTask(const std::vector<double>& A, const std::vector<double>& B, st
     threads.push_back(std::thread(computeP, std::ref(P3), A11, subMatrix(B12, B22, halfSize), halfSize));
     threads.push_back(std::thread(computeP, std::ref(P4), A22, subMatrix(B21, B11, halfSize), halfSize));
     threads.push_back(std::thread(computeP, std::ref(P5), addMatrix(A11, A12, halfSize), B22, halfSize));
-    threads.push_back(
-        std::thread(computeP, std::ref(P6), subMatrix(A21, A11, halfSize), addMatrix(B11, B12, halfSize), halfSize));
-    threads.push_back(
-        std::thread(computeP, std::ref(P7), subMatrix(A12, A22, halfSize), addMatrix(B21, B22, halfSize), halfSize));
+    threads.push_back(std::thread(computeP, std::ref(P6), subMatrix(A21, A11, halfSize),
+                                  addMatrix(B11, B12, halfSize), halfSize));
+    threads.push_back(std::thread(computeP, std::ref(P7), subMatrix(A12, A22, halfSize),
+                                  addMatrix(B21, B22, halfSize), halfSize));
+
+    for (auto& t : threads) {
+      t.join();
+    }
   } else {
     computeP(P1, addMatrix(A11, A22, halfSize), addMatrix(B11, B22, halfSize), halfSize);
     computeP(P2, addMatrix(A21, A22, halfSize), B11, halfSize);
@@ -166,21 +172,16 @@ void strassenTask(const std::vector<double>& A, const std::vector<double>& B, st
     computeP(P7, subMatrix(A12, A22, halfSize), addMatrix(B21, B22, halfSize), halfSize);
   }
 
-  for (auto& t : threads) {
-    t.join();
-  }
-
   std::vector<double> C11 = addMatrix(subMatrix(addMatrix(P1, P4, halfSize), P5, halfSize), P7, halfSize);
   std::vector<double> C12 = addMatrix(P3, P5, halfSize);
   std::vector<double> C21 = addMatrix(P2, P4, halfSize);
   std::vector<double> C22 = addMatrix(subMatrix(addMatrix(P1, P3, halfSize), P2, halfSize), P6, halfSize);
 
-  C = mergeMatrix(C11, C12, C21, C22);
+  std::vector<double> C_result = mergeMatrix(C11, C12, C21, C22);
 
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    for (size_t i = 0; i < C.size(); ++i) {
-      C[i] = C[i];
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < n; ++j) {
+      C[i * n + j] = C_result[i * newSize + j];
     }
   }
 }
